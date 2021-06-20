@@ -6,12 +6,7 @@
       'fs-utils
       'fs-utils
       (scheme#list)
-      '((path . fs-utils#path)
-        (dir-contents . fs-utils#dir-contents)
-        (dir-dirs . fs-utils#dir-dirs)
-        (dir-files . fs-utils#dir-files)
-        (directory? . fs-utils#directory?)
-        (file? . fs-utils#file?))
+      '((* . scheme#*))
       (scheme#list)
       (scheme#list))))
 

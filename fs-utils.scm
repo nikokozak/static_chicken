@@ -1,12 +1,8 @@
-(module fs-utils (path ;; returns current path or appends args to path
-                  dir-contents ;; list contents of given dir as strings
-                  dir-dirs ;; list only directories in given dir as strings
-                  dir-files ;; list only files in given dir as strings
-                  directory? ;; check if given path is a directory
-                  file?) ;; check if given path is a file
+(module fs-utils (*)
 
   (import scheme)
   (import (chicken base))
+  (import (chicken format))
   (import shell)
 
   ;; Functions for dealing with the filesystem by invoking sh commands.
@@ -22,10 +18,18 @@
       (letrec ((reader (lambda ()
                          (let ((current (read port)))
                           (cond
-                            ((eof-object? current) (quote ()))
+                            ((eof-object? current) '())
                             (else
-                            (cons (symbol->string current) (reader))))))))
+                            (cons (prune-end-slash (symbol->string current)) (reader))))))))
         (reader))))
+
+  ;; Removes the final / from a non-empty string.
+  (define (prune-end-slash str)
+    (let ((penultimate (- (string-length str) 1)))
+      (if (equal? (string-ref str penultimate)
+                  #\/)
+          (substring str 0 penultimate)
+          str)))
 
   ;; When passed no args, returns the full path to the CWD.
   ;; When passed one or more args, concatenates the args onto the CWD.
@@ -46,13 +50,27 @@
             (string-append cwd (string-append "/" (helper args))))
           cwd)))
 
+  (define (_find charlist char index)
+    (cond
+     ((null? charlist) #f)
+     (else
+      (if (equal? (car charlist) char)
+        index
+        (_find (cdr charlist) char (add1 index))))))
+
+  (define (_strip-until-last char str)
+    (let ((reversed (reverse (string->list str))))
+      (substring str (- (string-length str) (_find reversed char 0)))))
+
+  (define (_strip-after-last char str)
+    (let ((reversed (reverse (string->list str))))
+      (substring str 0 (- (string-length str) (add1 (_find reversed char 0))))))
+
   (define (path-end path)
-    (let ((reversed (reverse (string->list path))))
-      (letrec ((find (lambda (charlist char index)
-                       (if (equal? (car charlist) char)
-                           index
-                           (find (cdr charlist) char (add1 index))))))
-        (substring path (- (string-length path) (find reversed #\/ 0))))))
+    (_strip-until-last #\/ path))
+
+  (define (strip-extension path)
+    (_strip-after-last #\. path))
 
   ;; List the contents of a given directory
   ;; full? -> use full pathnames
@@ -88,4 +106,40 @@
       (if (not (null? result))
           (equal? (car result) "true")
           #f)))
+
+  ;; Checks whether a given path exists
+  (define (exists? path)
+    (and (directory? path) (file? path)))
+
+
+
+  ;; A simple record structure to hold dir information.
+  (define-record dir name path contents/dir contents/files)
+  (set-record-printer! dir (lambda (x out)
+                            (fprintf out "(#dir ~S ~S ~S ~S)"
+                                      (dir-name x)
+                                      (dir-path x)
+                                      (dir-contents/dir x)
+                                      (dir-contents/files x))))
+
+  ;; Returns a tree of dirs, including files and subdirs.
+  (define (make-dir-tree path)
+    (letrec
+        ((helper (lambda (dirs)
+                      (cond
+                      ((null? dirs) '())
+                      (else
+                        (let ((dir-name (path-end (car dirs)))
+                              (dir-path (car dirs))
+                              (files (dir-files (car dirs)))
+                              (other-dirs (cdr dirs)))
+                          (cons
+                            (make-dir
+                              dir-name
+                              dir-path
+                              (helper (dir-dirs dir-path #t)) ;; recurr
+                              files)
+                            (helper other-dirs))))))))
+      (helper (dir-dirs path #t))))
+
 )
