@@ -114,16 +114,18 @@
 
 
   ;; A simple record structure to hold dir information.
-  (define-record dir name path contents/dir contents/files)
+  (define-record dir name abs-path rel-path contents)
   (set-record-printer! dir (lambda (x out)
                             (fprintf out "(#dir ~S ~S ~S ~S)"
-                                      (dir-name x)
-                                      (dir-path x)
-                                      (dir-contents/dir x)
-                                      (dir-contents/files x))))
+                                     (dir-name x)
+                                     (dir-abs-path x)
+                                     (dir-rel-path x)
+                                     (dir-contents x))))
+
+  (define-record file name type path)
 
   ;; Returns a tree of dirs, including files and subdirs.
-  (define (make-dir-tree path)
+  (define (tree path)
     (letrec
         ((helper (lambda (dirs)
                       (cond
