@@ -12,7 +12,7 @@
 (define (downcase-symbol symb)
   (string->symbol (list->string (map char-downcase (string->list (symbol->string symb))))))
 
-(define-for-syntax (accessors-for name struct fields)
+(define-for-syntax (accessor-defs-for name struct fields)
   (cond
    ((null? fields) '())
    (else
@@ -20,46 +20,49 @@
      `(define ,(symbol-append name '- (car fields))
         (getter-with-setter (record-accessor ,struct ',(car fields))
                             (record-modifier ,struct ',(car fields))))
-     (accessors-for name struct (cdr fields))))))
+     (accessor-defs-for name struct (cdr fields))))))
+
+(define-for-syntax (accessors-for name fields var) ;; CHEEKY - CAREFUL WITH THE VAR
+  (cond
+   ((null? fields) '())
+   (else
+    (cons
+     `(,(symbol-append name '- (car fields)) x)
+     (accessors-for name (cdr fields) var)))))
+
+;; TODO: Fix s spacing
+(define-for-syntax (format-string name fields)
+  (let ((field-length (length fields)))
+    (letrec ((draw-s (lambda (fields-left)
+                       (if (= 0 fields-left)
+                           ""
+                           (string-append "~s " (draw-s (sub1 fields-left)))))))
+      (string-append "#(" (symbol->string name) " " (draw-s field-length) ")"))))
 
 ;; Defines a new #Record
+;; eg. (make-token Test a b)
 ;; eg. (define rec (Test a b ...))
 ;; eg. (test-a rec) => a
 ;; eg. (test-record? rec) => #t
 ;; eg. (set! (test-a rec) 10) => 10
-(define-syntax make-record
+;; rec => #(test "a" "b")
+(define-syntax make-token
   (er-macro-transformer
    (lambda (expr rename compare?)
-     (let ((name (cadr expr))
+     (let* ((name (cadr expr))
            (upcase (capitalize-symbol (cadr expr)))
            (downcase (downcase-symbol (cadr expr)))
-           (fields (cddr expr)))
+           (fields (cddr expr))
+           (token-printer `(lambda (x out)
+                             (fprintf out ,(format-string downcase fields)
+                                      ,@(accessors-for downcase fields 'x)))))
 
        `(begin
           (define ,upcase (make-record-type ',downcase '(,@fields)))
           (define ,name (record-constructor ,upcase))
-          (define ,(symbol-append downcase '-record?) (record-predicate ,upcase))
-          ,@(accessors-for downcase upcase fields)
-          (define-record-printer (',downcase x out)
-            (fprintf out "#(,downcase ~s ~s ~)"))))))) ;; NOTE: FINISH THIS
-
-
-
-#;(define-syntax make-record
-  (syntax-rules ()
-    ((_ name field1 field2 ...)
-     (begin
-       (define ,(up name)
-         (make-record-type (down name) (list field1 field2 ...)))
-       (define name
-         (record-constructor (up name)))
-       (define ,(symbol-append (down name) '?))
-         (record-predicate (up name)))
-       (define ,(symbol-append (down name) '- field1)
-         (getter-with-setter (record-accessor (up name) field1)
-                             (record-mutator (up name) field1)))
-       ...)))
-
+          (define ,(symbol-append downcase '-token?) (record-predicate ,upcase))
+          ,@(accessor-defs-for downcase upcase fields)
+          (set-record-printer! ',downcase ,token-printer))))))
 
 ;; "Tokens"
 (define-record-type dir
