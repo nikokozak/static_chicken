@@ -1,16 +1,16 @@
 ;; Functions for dealing with the filesystem by invoking sh commands.
-(module fs-utils (*)
+(module fs-utils *
 
   (import scheme)
   (import (chicken base))
   (import shell)
   (import token)
+  (import records)
 
 
   (define image-formats '("jpg" "jpeg" "png" "tiff"))
   (define image-folders '("images" "imgs"))
   (define template-formats '("template"))
-
 
   ;; When passed no args, returns the full path to the CWD.
   ;; When passed one or more args, concatenates the args onto the CWD.
@@ -39,6 +39,18 @@
   ;; Removes any extension information from a filename.
   (define (strip-extension path-or-filename)
     (_strip-after-last #\. path-or-filename))
+
+  ;; Creates a directory
+  (define (mkdir path)
+    (shell-command->list (capture (mkdir ,path))))
+
+  ;; Copies a file
+  (define (copy from-path to-path)
+    (shell-command->list (capture (cp ,from-path ,to-path))))
+
+  ;; Removes a path recursively. NOTE: CAUTION
+  (define (rmvrf path)
+    (shell-command->list (capture (rm -r -f ,path))))
 
   ;; List the contents of a given directory
   ;; full? -> use full pathnames

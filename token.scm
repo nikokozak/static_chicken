@@ -12,8 +12,8 @@
           (chicken base)
           (chicken syntax))
 
-  (reexport records
-            (only (chicken format) fprintf))
+  (reexport records)
+  (reexport (only (chicken format) fprintf))
 
   ;; Creates getter and setter templates for records.
   (define-for-syntax (accessor-defs-for name struct fields)
