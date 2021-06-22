@@ -9,6 +9,7 @@
 
   (define image-formats '("jpg" "jpeg" "png" "tiff"))
   (define image-folders '("images" "imgs"))
+  (define template-formats '("template"))
 
 
   ;; When passed no args, returns the full path to the CWD.
@@ -36,8 +37,8 @@
     (_strip-until-last #\/ path))
 
   ;; Removes any extension information from a filename.
-  (define (strip-extension path)
-    (_strip-after-last #\. path))
+  (define (strip-extension path-or-filename)
+    (_strip-after-last #\. path-or-filename))
 
   ;; List the contents of a given directory
   ;; full? -> use full pathnames
@@ -78,6 +79,10 @@
   (define (image? path)
     (and (file? path) (contains? (extension path) image-formats)))
 
+  ;; Is the given path a template?
+  (define (template? path)
+    (and (file? path) (contains? (extension path) template-formats)))
+
   ;; Checks whether a given path exists
   (define (exists? path)
     (and (dir? path) (file? path)))
@@ -111,76 +116,87 @@
           (car result)
           -1)))
 
-;; A Directory token
-;; (define a (Token name abs-path ...))
-;; (token-name a)
-;; (set! (token-name a) "new")
-;; (token-token? a)
-(make-token Dir
-            name
-            abs-path
-            rel-path
-            contents
-            image-dir?)
+  ;; A Directory token
+  ;; (define a (Token name abs-path ...))
+  ;; (token-name a)
+  ;; (set! (token-name a) "new")
+  ;; (token-token? a)
+  (make-token Dir
+              name
+              abs-path
+              rel-path
+              contents
+              image-dir?)
 
-;; A File token
-(make-token File
-            name
-            abs-path
-            rel-path
-            type)
+  ;; A File token
+  (make-token File
+              name
+              abs-path
+              rel-path
+              type)
 
-;; An image token
-(make-token Img
-            name
-            abs-path
-            rel-path
-            type
-            width
-            height
-            size)
+  (make-token Template
+              name
+              for
+              abs-path
+              rel-path)
 
-;; An error token
-(make-token Error
-            name
-            abs-path
-            rel-path)
+  ;; An image token
+  (make-token Img
+              name
+              abs-path
+              rel-path
+              type
+              width
+              height
+              size)
 
-(define (tree path)
-  (let
-      ((start-dir path))
-    (letrec
-        ((travel (lambda (objects rel-path)
-                   (if (null? objects)
-                       '()
-                       (let*
-                           ((obj-name (path-end (car objects)))
-                            (obj-abs-path (car objects))
-                            (obj-rel-path (string-append rel-path "/" obj-name))
-                            (obj-is-dir? (dir? obj-abs-path)))
-                         (cons
-                          (cond
-                           (obj-is-dir? (Dir obj-name
-                                             obj-abs-path
-                                             obj-rel-path
-                                             (travel (dir obj-abs-path 'abs-paths) obj-rel-path)
-                                             (image-dir? obj-name)))
-                           ((image? obj-abs-path) (Img obj-name
-                                                       obj-abs-path
-                                                       obj-rel-path
-                                                       (extension obj-name)
-                                                       (car (img-dims obj-abs-path))
-                                                       (cadr (img-dims obj-abs-path))
-                                                       (file-size obj-abs-path)))
-                           ((file? obj-abs-path) (File obj-name
-                                                       obj-abs-path
-                                                       obj-rel-path
-                                                       (extension obj-name)))
-                           (else (Error obj-name
-                                        obj-abs-path
-                                        obj-rel-path)))
-                          (travel (cdr objects) rel-path)))))))
-      (travel (dir start-dir 'abs-paths) ""))))
+  ;; An error token
+  (make-token Error
+              name
+              abs-path
+              rel-path)
+
+  ;; Returns a tree of tokens (defined above)
+  (define (tree path)
+    (let
+        ((start-dir path))
+      (letrec
+          ((travel (lambda (objects rel-path)
+                    (if (null? objects)
+                        '()
+                        (let*
+                            ((obj-name (path-end (car objects)))
+                              (obj-abs-path (car objects))
+                              (obj-rel-path (string-append rel-path "/" obj-name))
+                              (obj-is-dir? (dir? obj-abs-path)))
+                          (cons
+                            (cond
+                            (obj-is-dir? (Dir obj-name
+                                              obj-abs-path
+                                              obj-rel-path
+                                              (travel (dir obj-abs-path 'abs-paths) obj-rel-path)
+                                              (image-dir? obj-name)))
+                            ((image? obj-abs-path) (Img obj-name
+                                                        obj-abs-path
+                                                        obj-rel-path
+                                                        (extension obj-name)
+                                                        (car (img-dims obj-abs-path))
+                                                        (cadr (img-dims obj-abs-path))
+                                                        (file-size obj-abs-path)))
+                            ((template? obj-abs-path) (Template obj-name
+                                                                obj-abs-path
+                                                                obj-rel-path
+                                                                (strip-extension obj-name)))
+                            ((file? obj-abs-path) (File obj-name
+                                                        obj-abs-path
+                                                        obj-rel-path
+                                                        (extension obj-name)))
+                            (else (Error obj-name
+                                          obj-abs-path
+                                          obj-rel-path)))
+                            (travel (cdr objects) rel-path)))))))
+        (travel (dir start-dir 'abs-paths) ""))))
 
   ;; When used with a shell command such as (capture EXPRESSION),
   ;; takes the result of the shell command and turns it into a list of strings.

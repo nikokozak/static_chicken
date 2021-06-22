@@ -1,3 +1,10 @@
+;; "Tokens"
+;; (make-token Dir
+;;             name
+;;             abs-path
+;;             rel-path
+;;             contents)
+
 (module token ((make-token *))
 
   (import scheme
@@ -7,14 +14,6 @@
 
   (reexport records
             (only (chicken format) fprintf))
-
-  ;; ;; Takes a symbol and returns a fully capitalized version.
-  ;; (define (capitalize-symbol symb)
-  ;;   (string->symbol (list->string (map char-upcase (string->list (symbol->string symb))))))
-
-  ;; ;; Takes a symbol and returns a downcase version.
-  ;; (define (downcase-symbol symb)
-  ;;   (string->symbol (list->string (map char-downcase (string->list (symbol->string symb))))))
 
   ;; Creates getter and setter templates for records.
   (define-for-syntax (accessor-defs-for name struct fields)
@@ -79,12 +78,6 @@
             ,@(accessor-defs-for downcase upcase fields)
             (set-record-printer! ',downcase ,token-printer))))))
 
-  ;; "Tokens"
-  ;; (make-token Dir
-  ;;             name
-  ;;             abs-path
-  ;;             rel-path
-  ;;             contents)
 
   ;; (make-token File
   ;;             name
