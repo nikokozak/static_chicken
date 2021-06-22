@@ -7,7 +7,7 @@
 
 (define temp-dir (path "tmp"))
 (define templates-for '(("content" "content")))
-(define parsers-for `(("content" ,markdown->sxml)))
+(define parsers-for `(("markdown" ,markdown->sxml*)))
 
 ;; Usage: (find-in-tree lowercase-node-type tree)
 (define-syntax find-in-tree
@@ -30,6 +30,9 @@
 
 (define (get-tree-files tree)
   (find-in-tree file tree))
+
+(define (get-tree-pfiles tree)
+  (find-in-tree pfile tree))
 
 (define (get-tree-templates tree)
   (find-in-tree template tree))
@@ -88,6 +91,9 @@
                                   (parse (cdr tree))))
    (else
     (cons (car tree) (parse (cdr tree))))))
+
+(define (create-temp-files parsed-tree)
+  'a)
 
 (make-token PFile
             name
