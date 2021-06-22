@@ -5,11 +5,11 @@
     (scheme#eval
       '(import-syntax
          scheme
+         chicken.module
          chicken.base
          chicken.syntax
-         chicken.format
-         fs-utils
-         records))
+         records
+         (only chicken.format fprintf)))
     (##core#begin
       (define (accessor-defs-for name struct fields)
         (cond ((null? fields) '())
@@ -42,8 +42,13 @@
     (##sys#register-compiled-module
       'token
       'token
-      (scheme#list)
-      '()
+      (scheme#list '(* . scheme#*))
+      '((record-modifier . records#record-modifier)
+        (record-accessor . records#record-accessor)
+        (record-constructor . records#record-constructor)
+        (record-predicate . records#record-predicate)
+        (make-record-type . records#make-record-type)
+        (fprintf . chicken.format#fprintf))
       (scheme#list
         (scheme#cons
           'make-token

@@ -1,11 +1,9 @@
 ;; Functions for dealing with the filesystem by invoking sh commands.
-;(module fs-utils (*)
+(module fs-utils (*)
 
   (import scheme)
   (import (chicken base))
-  (import (chicken format))
   (import shell)
-  (import records)
   (import token)
 
 
@@ -82,7 +80,7 @@
 
   ;; Checks whether a given path exists
   (define (exists? path)
-    (and (directory? path) (file? path)))
+    (and (dir? path) (file? path)))
 
 
   ;; Checks whether a given folder name is within the image-folders
@@ -148,7 +146,7 @@
             abs-path
             rel-path)
 
-(define (make-tree path)
+(define (tree path)
   (let
       ((start-dir path))
     (letrec
@@ -159,7 +157,7 @@
                            ((obj-name (path-end (car objects)))
                             (obj-abs-path (car objects))
                             (obj-rel-path (string-append rel-path "/" obj-name))
-                            (obj-is-dir? (directory? obj-abs-path)))
+                            (obj-is-dir? (dir? obj-abs-path)))
                          (cons
                           (cond
                            (obj-is-dir? (Dir obj-name
@@ -212,6 +210,10 @@
           (substring str 0 penultimate)
           str)))
 
+  #|--------------------------------------------------------------------|#
+  #|------------------------ UTILITY FUNCTIONS -------------------------|#
+  #|--------------------------------------------------------------------|#
+
   ;; Find the index of a given character in a charlist, starting at index.
   (define (_find charlist char index)
     (cond
@@ -230,4 +232,4 @@
   (define (_strip-after-last char str)
     (let ((reversed (reverse (string->list str))))
       (substring str 0 (- (string-length str) (add1 (_find reversed char 0))))))
-;)
+)

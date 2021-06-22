@@ -1,11 +1,12 @@
-(module token ((make-token))
+(module token ((make-token *))
 
-  (import scheme)
-  (import (chicken base))
-  (import (chicken syntax))
-  (import (chicken format))
-  (import fs-utils)
-  (import records)
+  (import scheme
+          (chicken module)
+          (chicken base)
+          (chicken syntax))
+
+  (reexport records
+            (only (chicken format) fprintf))
 
   ;; ;; Takes a symbol and returns a fully capitalized version.
   ;; (define (capitalize-symbol symb)
